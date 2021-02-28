@@ -1,13 +1,31 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { signupSchema } from "../utils/formValidationSchema";
-import Input from '../atoms/input';
+import { SignupAction } from "../actions/register.action";
+import { Referral, TimeZone, Country } from '../actions/formDataRequest.action';
+import Input from "../atoms/input";
+import Select from '../atoms/select';
+import { referralSwitch } from '../utils/referralSwitch';
 
 const Signup = () => {
+  const referralMethods = useSelector(state => state.referral);
+  const timeZones = useSelector(state => state.timezone);
+  const countries = useSelector(state => state.country);
+
+
+  const dispatch = useDispatch();  
+  useEffect(() => {
+    dispatch(Referral());
+    dispatch(TimeZone());
+    dispatch(Country());
+  }, []);
   const { register, handleSubmit, errors } = useForm({
     resolver: yupResolver(signupSchema),
   });
+
+  
 
   const submit = (body) => {
     const {
@@ -26,6 +44,9 @@ const Signup = () => {
       ref_methods,
     } = body;
 
+    const code = referralSwitch(ref_methods);
+   
+    const countryCode = country.split(' ')[1];
 
     const data = {
       user: {
@@ -40,12 +61,19 @@ const Signup = () => {
       birth_date,
       city,
       state,
-      country,
+      country: countryCode,
       timezone,
-      ref_methods,
+      ref_methods: code,
     };
-    console.log(data);
+
+    console.log(data)
+
+    // dispatch(SignupAction(data));
   };
+
+  // convert country object to an array
+  const countryArray = Object.entries(countries);
+  
   return (
     <form onSubmit={handleSubmit(submit)}>
       <Input
@@ -98,23 +126,15 @@ const Signup = () => {
       <p>{errors.city?.message}</p>
       <Input type="text" placeholder="state" name="state" ref={register} />
       <p>{errors.state?.message}</p>
-      <Input type="text" placeholder="country" name="country" ref={register} />
+      <Select Values={countryArray} name="country" list="country" ref={register} placeholder="country" />
       <p>{errors.country?.message}</p>
-      <Input
-        type="text"
-        placeholder="timezone"
-        name="timezone"
-        ref={register}
-      />
+      <Select Values={timeZones} name="timezone" list="timezone" ref={register} placeholder="timezone" />
       <p>{errors.timezone?.message}</p>
-      <Input
-        type="number"
-        placeholder="ref_methods"
-        name="ref_methods"
-        ref={register}
-      />
+      <Select Values={referralMethods} name="ref_methods" list="ref_methods" ref={register} placeholder="referral method" />
       <p>{errors.ref_methods?.message}</p>
+
       <Input type="submit" />
+    
     </form>
   );
 };
